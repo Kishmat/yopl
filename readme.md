@@ -37,7 +37,7 @@ function even_odd(num){
 }
 if(even_odd(5))
 {
-  print(It is even");
+  print("It is even");
 }else{
   print("It is Odd");
 }
