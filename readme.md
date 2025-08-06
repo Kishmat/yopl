@@ -1,41 +1,33 @@
 # YOPL - You're On Your Own Programming Language
 
 Welcome to **YOPL**, the language where you're on your own – literally.
-
-This is a VS Code extension that provides just enough features to make you think you're coding in a real language. It includes:
-
-### 🔧 Features
-
-- Syntax highlighting so it *looks* like code.
-- Autoclosing brackets because we're not animals.
-- Indentation and folding rules, because chaos still needs structure.
-- Autocomplete and function signatures (sometimes helpful, sometimes cryptic).
-- Ctrl+Click navigation, just because.
-- A run button that may or may not do what you expect.
-
-### ❓ What is YOPL?
-
-No one really knows. Not even the author.
-
-If you’re looking for documentation, good luck. You're on your own. It’s literally in the name. But I will create a notepad documentation and release it if I feel like it.
-
-### 🚀 Getting Started
-
-1. Install this extension.
-2. Open a `.yopl` file.
-3. Start typing random nonsense.
-4. Press the run button and hope for the best.
-
-### 📜 License
-
-Do whatever. Just don't blame me.
-
-### 📦 Packaging
-
-We’ve packed this chaos neatly into a VS Code extension. To install, download the `.vsix` (once available) and run:
-
+# Simple Example
 ```bash
-code --install-extension yopl-lang.vsix 
+print("Enter your name : ");
+let name = input();
+if(typeof(name) != "String"){
+  print("Please input a valid name");
+  exit(); // exits the program
+}
+let greet = "Hello! " + name; // string concats
+print(greet);
 ```
+# Other stuffs
+- if and else block
+- own function creation
+```bash
+function even_odd(num){
+  if(num%2 == 0){
+    return true;
+  }
+  return false;
+}
+if(even_odd(5))
+{
+  print(It is even");
+}else{
+  print("It is Odd");
+```
+- other operators supported are `>`,`<`,`>=`,'`<=`,`==`,`!=`,`+`,`-`,`*`,`/`
 
-Or wait for it to hit the marketplace, assuming I remember to publish it.
+Rest is upto you!
