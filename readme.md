@@ -14,6 +14,7 @@ yopl.exe your-file.yopl
 - Pray for it to work but if it doesn't then below is the The Documentation for it
 
 # the The Documentation
+## Sample Example
 ```javascript
 print("Enter your name : ");
 let name = input();
@@ -24,7 +25,7 @@ if(typeof(name) != "String"){
 let greet = "Hello! " + name; // string concats
 print(greet);
 ```
-# Other stuffs
+## Other stuffs
 - if and else block
 - own function creation
 ```javascript
