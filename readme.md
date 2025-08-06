@@ -27,7 +27,9 @@ if(even_odd(5))
   print(It is even");
 }else{
   print("It is Odd");
+}
 ```
 - other operators supported are `>`,`<`,`>=`,'`<=`,`==`,`!=`,`+`,`-`,`*`,`/`
 
 Rest is upto you!
+
