@@ -2,7 +2,7 @@
 
 Welcome to **YOPL**, the language where you're on your own – literally.
 # Simple Example
-```bash
+```code
 print("Enter your name : ");
 let name = input();
 if(typeof(name) != "String"){
@@ -15,7 +15,7 @@ print(greet);
 # Other stuffs
 - if and else block
 - own function creation
-```bash
+```code
 function even_odd(num){
   if(num%2 == 0){
     return true;
@@ -32,4 +32,5 @@ if(even_odd(5))
 - other operators supported are `>`,`<`,`>=`,'`<=`,`==`,`!=`,`+`,`-`,`*`,`/`
 
 Rest is upto you!
+
 
