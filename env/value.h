@@ -32,19 +32,33 @@ struct Value
         STRING,
         BOOL,
         NILL,
+        REFERENCE
     };
     Type type;
-    std::variant<std::monostate,Number,std::string,bool> value;
+    std::variant<std::monostate,Number,std::string,bool,Value*> value;
 
     Value() : type(Type::NILL),value(std::monostate{}) {}
     Value(std::string& str) : type(Type::STRING),value(str){}
+    Value(const char* str) : type(Type::STRING),value(std::string(str)) {}
     Value(bool b) : type(Type::BOOL), value(b) {}
     Value(int i) : type(Type::NUMBER), value(Number(i)) {}
     Value(double d) : type(Type::NUMBER), value(Number(d)) {}
+    Value(Value* ref) : type(Type::REFERENCE), value(ref) {}
 
     const std::string& as_string() const { return std::get<std::string>(value); }
     bool as_bool() const { return std::get<bool>(value); }
     const Number& as_number() const { return std::get<Number>(value); }
+    Value* as_reference() const {
+        if (type == Type::REFERENCE) {
+            return std::get<Value*>(value);
+        }
+        return nullptr;  // Not a reference
+    }
+    bool isReference() const{
+        if(type == Type::REFERENCE)
+            return true;
+        return false;
+    }
     bool as_condition() const;
     std::string toString(){
         std::string out = "";
@@ -75,6 +89,11 @@ struct Value
             }
             case Type::NILL:{
                 out = " (NULL) ";
+                break;
+            }
+            case Type::REFERENCE:
+            {
+                out = " (REFERENCE) -> " + (as_reference() ? as_reference()->toString() : "null");
                 break;
             }
         }

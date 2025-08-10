@@ -13,4 +13,7 @@ Value visit_moduled_function(AST_func_call* function);
 
 void function_print(std::vector<Expr*>& arguments); 
 void function_include(std::vector<Expr*>& arguments);
+void function_use(std::vector<Expr*>& arguments);
 std::string function_typeof(std::vector<Expr*>& arguments);
+
+NativeFunction* getFunction(const std::string& name);

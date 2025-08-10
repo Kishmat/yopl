@@ -11,6 +11,7 @@
 
 struct UserFunction{
     std::vector<std::string> parameters;
+    std::vector<bool> isReferrenced;
     std::vector<Stmt*> body;
 };
 
@@ -21,6 +22,9 @@ struct ReturnException : public std::exception{
         return "Function returned";
     }
 };
+struct BreakException : public std::exception{};
+struct ContinueException : public std::exception{};
+
 using NativeFunction = std::function<Value(std::vector<Value>)>;
 
 namespace Env{
@@ -38,7 +42,6 @@ namespace Env{
     extern const std::unordered_set<std::string_view> keywords;
     extern const std::unordered_set<std::string_view> functions;
 
-    void init();
     void loadSource(std::string& fileName);
 
     // variables
@@ -48,21 +51,30 @@ namespace Env{
     void popScope();
     void defineVariable(const std::string& name, Value val);
     void assignVariable(const std::string& name, Value val);
+    Value* getVariablePtr(const std::string& name);
     Value getVariable(const std::string& name);
 
 
     // functions
     extern FunctionMap functionTable;
-    extern std::unordered_map<std::string, NativeFunctionMap> modules;
-    extern std::vector<std::string> included_modules;
+    extern NativeFunctionMap modules;
 
     void includeFile(std::string& name);
     bool isFunctionUserDefined(std::string& name);
     bool isFunctionBuiltIn(std::string& function);
     bool functionExists(std::string& name);
+    void includeModule(std::string& name);
 
 
     // helper
     Value Evaluate(AST_binary_expression* expression);
-    void registerModule(std::string name, std::unordered_map<std::string,NativeFunction> functions);
+    void registerFunction(const char* name, NativeFunction fn);
+
+    void print();
+}
+
+
+extern "C" {
+    typedef void(*RegisterFunctionPtr)(const char* name,NativeFunction fn);
+    __declspec(dllexport) void registerModule(RegisterFunctionPtr regFn);
 }

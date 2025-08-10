@@ -3,14 +3,16 @@
 struct Token{
     enum class Type{
         // reserved
-        KEYWORD,IDENTIFIER,FUNCTION_CALL,
+        KEYWORD,IDENTIFIER,FUNCTION_CALL,REFERENCE,
 
         // comparisons
-        GT,LT,GTE,LTE,EQUALITY,NOT_EQUAL,
+        GT,LT,GTE,LTE,EQUALITY,NOT_EQUAL,AND,OR,
 
         // operations
-        MOD,EQUALS,SEMI,PLUS,MINUS,MULTIPLY,DIVIDE,LPAREN,RPAREN,COMMA,
-        CURLYL,CURLYR,
+        MOD,PLUS,MINUS,MULTIPLY,DIVIDE,INCREMENT,DECREMENT,
+        
+        //symbols 
+        LPAREN,RPAREN,COMMA,CURLYL,CURLYR,EQUALS,SEMI,
 
         // datas
         NUMBER,STRING,BOOLEAN,

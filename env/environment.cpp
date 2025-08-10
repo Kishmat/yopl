@@ -1,7 +1,8 @@
 #include "environment.h"
 #include<sstream>
 #include<fstream>
-
+#include<algorithm>
+#include<windows.h>
 namespace Env{
     // interpreter
     std::string m_source;
@@ -9,24 +10,11 @@ namespace Env{
     std::vector<Token> m_tokens;
     std::vector<Stmt*> m_nodes;
     const std::unordered_set<std::string_view> keywords = {
-        "let","function","return","if","else"
+        "let","function","return","if","else","for","while","to","elseif","break","continue"
     };
     const std::unordered_set<std::string_view> functions = {
-        "print","exit","typeof","input","include"
+        "print","exit","typeof","input","include","use"
     };
-    void init(){
-        registerModule("string",{
-        {
-            "strlen", [](std::vector<Value> args) -> Value{
-                if(args.size() == 1 && args[0].type == Value::Type::STRING)
-                {
-                    return Value((int)args[0].as_string().length());
-                }
-                return Value();
-            }
-        },
-    });
-    }
     void loadSource(std::string& fileName){
         std::ifstream file(fileName);
         std::stringstream buffer;
@@ -52,6 +40,14 @@ namespace Env{
         }
         scopes.back()[name] = val;
     }
+    void assignVariablePtr(const std::string& name, Value val){
+        for(auto it = scopes.rbegin(); it != scopes.rend(); ++it){
+            if(it->count(name)){
+                (*it)[name] = &val;
+                return;
+            }
+        }
+    }
     void assignVariable(const std::string& name, Value val){
         for(auto it = scopes.rbegin(); it != scopes.rend(); ++it){
             if(it->count(name)){
@@ -59,6 +55,14 @@ namespace Env{
                 return;
             }
         }
+    }
+    Value* getVariablePtr(const std::string& name){
+        for(auto it = scopes.rbegin(); it != scopes.rend(); ++it){
+            if(it->count(name)) return &(*it)[name];
+        }
+        return nullptr;
+        std::cout << "Undefined variable: " << name << std::endl;
+        exit(-1);
     }
     Value getVariable(const std::string& name){
         for(auto it = scopes.rbegin(); it != scopes.rend(); ++it){
@@ -71,20 +75,21 @@ namespace Env{
 
     // functions
     FunctionMap functionTable;
-    std::unordered_map<std::string, NativeFunctionMap> modules;
-    std::vector<std::string> included_modules;
+    NativeFunctionMap modules;
 
     void includeFile(std::string& name){
-        if(modules.count(name))
-        {
-            if(std::find(included_modules.begin(),included_modules.end(),name) == included_modules.end())
-            {
-                included_modules.push_back(name);
-            }
-        }else{
-            std::cout << "No any file or module named " << name << " found!" << std::endl;
-            exit(-1);
-        }
+        // if(modules.count(name))
+        // {
+            
+        //     if(std::find(included_modules.begin(),included_modules.end(),name) == included_modules.end())
+        //     {
+        //         included_modules.push_back(name);
+        //     }
+        // }else{
+        //     std::cout << "No any file or module named " << name << " found!" << std::endl;
+        //     exit(-1);
+        // }
+
     }
     bool isFunctionUserDefined(std::string& name){
         if(functionTable.count(name))
@@ -100,11 +105,8 @@ namespace Env{
         if(functions.count(name))
             return true;
         else{
-            for (const std::string& mod : included_modules) {
-                if (modules.count(mod) && modules[mod].count(name)) {
-                    return true;
-                }
-            }
+            if(modules.count(name))
+                return true;
         }
         return isFunctionUserDefined(name);
     }
@@ -112,7 +114,9 @@ namespace Env{
 
 Value Env::Evaluate(AST_binary_expression* expression){
     Value left = expression->left->getValue();
-    Value right = expression->right->getValue();
+    Value right;
+    if(expression->right)
+        right = expression->right->getValue();
     std::string op = expression->op;
 
     // mathematics
@@ -122,6 +126,9 @@ Value Env::Evaluate(AST_binary_expression* expression){
     else if(op == "/") return left / right;
     else if(op == "%") return left%right;
 
+    else if(op == "++") return left + Value(1);
+    else if(op == "--") return left - Value(1);
+
     // comparisions
     else if(op == ">") return Value(left > right);
     else if(op == "<") return Value(left < right);
@@ -129,12 +136,44 @@ Value Env::Evaluate(AST_binary_expression* expression){
     else if(op == "<=") return Value(left <= right);
     else if(op == "==") return Value(left == right);
     else if(op == "!=") return Value(left != right);
+    else if (op == "&&") {
+        bool left_bool = left.as_condition();
+        bool right_bool = right.as_condition();
+        return Value(left_bool && right_bool);
+    }
+
+    else if (op == "||") {
+        bool left_bool = left.as_condition();
+        bool right_bool = right.as_condition();
+        std::cout << left.type << " " << right.type << std::endl;
+        return Value(left_bool || right_bool);
+    }
     else{
         std::cout << "Unknown operator: " << op << std::endl;
         exit(-1);
     }
 }
 
-void Env::registerModule(std::string name, std::unordered_map<std::string,NativeFunction> functions){
-    modules[name] = functions;
+void Env::registerFunction(const char* name, NativeFunction fn){
+    modules[name] = std::move(fn);
+}
+void Env::includeModule(std::string& name){
+    std::string filename = name + ".yopl.mod";
+    HMODULE handle = LoadLibraryA(filename.c_str());
+    if(!handle){
+        std::cerr << "Failed to load module: " << filename << "\n";
+        exit(1);
+    }
+    typedef void(*RegisterFunctionPtr)(const char*, NativeFunction);
+    typedef void(*RegisterModuleFn)(RegisterFunctionPtr);
+    RegisterModuleFn registerModule = (RegisterModuleFn)GetProcAddress(handle,"registerModule");
+    if(!registerModule){
+        std::cerr << "Invalid module file " << filename << " because registerModule not found in it!" << std::endl;
+        exit(1); 
+    }
+    registerModule(registerFunction);
+}
+
+void Env::print(){
+    std::cout << "HELLO WORLD FROM HERE" << std::endl;
 }

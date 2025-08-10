@@ -9,6 +9,8 @@ void Lexer::printTokens(){
         switch (token.type)
         {
             case Token::Type::GT:{type = "GT";break;}
+            case Token::Type::AND:{type = "AND";break;}
+            case Token::Type::OR:{type = "OR";break;}
             case Token::Type::LT:{type = "LT";break;}
             case Token::Type::GTE:{type = "GTE";break;}
             case Token::Type::LTE:{type = "LTE";break;}
@@ -19,6 +21,7 @@ void Lexer::printTokens(){
             case Token::Type::BOOLEAN:{type = "BOOLEAN";break;}
             case Token::Type::KEYWORD:{type = "KEYWORD";break;}
             case Token::Type::IDENTIFIER:{type = "IDENTIFIER";break;}
+            case Token::Type::REFERENCE:{type = "REFERENCE";break;}
             case Token::Type::FUNCTION_CALL:{type = "FUNCTION_CALL";break;}
             case Token::Type::END:{type = "END";break;}
             case Token::Type::MOD:{type = "MOD";break;}
@@ -27,6 +30,8 @@ void Lexer::printTokens(){
             case Token::Type::PLUS:{type = "PLUS";break;}
             case Token::Type::MINUS:{type = "MINUS";break;}
             case Token::Type::MULTIPLY:{type = "MULTIPLY";break;}
+            case Token::Type::INCREMENT:{type = "INCREMENT";break;}
+            case Token::Type::DECREMENT:{type = "DECREMENT";break;}
             case Token::Type::DIVIDE:{type = "DIVIDE";break;}
             case Token::Type::LPAREN:{type = "LPAREN";break;}
             case Token::Type::RPAREN:{type = "RPAREN";break;}
@@ -86,8 +91,24 @@ void Lexer::lex(){
                 break;
             }
             case ';': {Env::m_tokens.push_back({Token::Type::SEMI, ";"});break;}
-            case '+': {Env::m_tokens.push_back({Token::Type::PLUS, "+"});break;}
-            case '-': {Env::m_tokens.push_back({Token::Type::MINUS, "-"});break;}
+            case '+': {
+                if(next_ch() == '+'){
+                    advance();
+                    Env::m_tokens.push_back({Token::Type::INCREMENT, "++"});
+                }else{
+                    Env::m_tokens.push_back({Token::Type::PLUS, "+"});
+                }
+                break;
+            }
+            case '-': {
+                if(next_ch() == '-'){
+                    advance();
+                    Env::m_tokens.push_back({Token::Type::DECREMENT, "--"});
+                }else{
+                    Env::m_tokens.push_back({Token::Type::MINUS, "-"});
+                }
+                break;
+            }
             case '*': {Env::m_tokens.push_back({Token::Type::MULTIPLY, "*"});break;}
             case '/':{
                 if(next_ch() == '/')
@@ -102,6 +123,32 @@ void Lexer::lex(){
             case ',': {Env::m_tokens.push_back({Token::Type::COMMA, ","});break;}
             case '{': {Env::m_tokens.push_back({Token::Type::CURLYL, "{"});break;}
             case '}': {Env::m_tokens.push_back({Token::Type::CURLYR, "}"});break;}
+            case '|': {
+                if(next_ch() == '|'){
+                    advance();
+                    Env::m_tokens.push_back({Token::Type::OR, "||"});
+                }
+                break;
+            }
+            case '&': {
+                if(next_ch() == '&')
+                {
+                    advance();
+                    Env::m_tokens.push_back({Token::Type::AND, "&&"});
+                    break;
+                }
+                advance();
+                std::string temp = "";
+                if(isalnum(ch) || ch == '_'){
+                    while(isalnum(ch) || ch == '_')
+                    {
+                        temp += ch;
+                        advance();
+                    }
+                    i--;
+                    Env::m_tokens.push_back({Token::Type::REFERENCE, temp});break;
+                }
+            }
         }
         if(isalnum(ch) || ch == '_'){
             if(isdigit(ch))
@@ -199,8 +246,11 @@ std::string get_token_name(Token::Type type){
     {
         case Token::Type::KEYWORD: return "keyword";
         case Token::Type::IDENTIFIER: return "identifier";
+        case Token::Type::REFERENCE: return "reference";
         case Token::Type::FUNCTION_CALL: return "function";
         case Token::Type::GT: return ">";
+        case Token::Type::AND: return "&&";
+        case Token::Type::OR: return "||";
         case Token::Type::LT: return "<";
         case Token::Type::GTE: return ">=";
         case Token::Type::LTE: return "<=";
@@ -211,6 +261,8 @@ std::string get_token_name(Token::Type type){
         case Token::Type::EQUALS: return "=";
         case Token::Type::PLUS: return "+";
         case Token::Type::MINUS: return "-";
+        case Token::Type::INCREMENT: return "++";
+        case Token::Type::DECREMENT: return "--";
         case Token::Type::MULTIPLY: return "*";
         case Token::Type::DIVIDE: return "/";
         case Token::Type::END: return "EOF";

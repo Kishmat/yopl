@@ -1,5 +1,5 @@
-#include "env/environment.h"
 #include<iostream>
+#include "env/environment.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "visitor/visitor.h"
@@ -21,7 +21,6 @@ int main(int argc,char* argv[]){
         return 1;
     }
     Env::loadSource(filename);
-    Env::init();
     Lexer lexer;
     lexer.lex();
     Parser parser;

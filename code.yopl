@@ -1,2 +1,14 @@
-let HELLO = "hello";
-print(HELLO);
+let percent = 0;
+if(percent > 90){
+    print("A+");
+}elseif(percent)
+{
+    print("A");
+}else{
+    print("SOMETHING ELSE");
+}
+
+// array and objects as datatype too
+// refactor module system
+// include File as well
+// error system

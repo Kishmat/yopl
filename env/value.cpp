@@ -54,9 +54,13 @@ Value function_input(){
     }
 }
 Value operator+(const Value& lhs, const Value& rhs){
-    if(lhs.type == Value::Type::NUMBER && rhs.type == Value::Type::NUMBER){
-        const Number& lnum = lhs.as_number();
-        const Number& rnum = rhs.as_number();
+    const Value& lhs_value = lhs.isReference() ? *lhs.as_reference() : lhs;
+    const Value& rhs_value = rhs.isReference() ? *rhs.as_reference() : rhs;
+
+
+    if(lhs_value.type == Value::Type::NUMBER && rhs_value.type == Value::Type::NUMBER){
+        const Number& lnum = lhs_value.as_number();
+        const Number& rnum = rhs_value.as_number();
 
         bool isDouble = false;
 
@@ -69,29 +73,29 @@ Value operator+(const Value& lhs, const Value& rhs){
         }
         return Value((int)(result));
     }
-    else if(lhs.type == Value::Type::STRING && rhs.type == Value::Type::STRING){
-        std::string concated = lhs.as_string() + rhs.as_string();
+    else if(lhs_value.type == Value::Type::STRING && rhs_value.type == Value::Type::STRING){
+        std::string concated = lhs_value.as_string() + rhs_value.as_string();
         return Value(concated);
     }
-    else if(lhs.type == Value::Type::STRING && rhs.type == Value::Type::NUMBER)
+    else if(lhs_value.type == Value::Type::STRING && rhs_value.type == Value::Type::NUMBER)
     {
-        const Number& r = rhs.as_number();
-        std::string concated = lhs.as_string();
+        const Number& r = rhs_value.as_number();
+        std::string concated = lhs_value.as_string();
         if(r.type == Number::Type::DECIMAL){
             concated += std::to_string(r.as_double());
         }else{
             concated += std::to_string(r.as_int());
         }
         return concated;
-    }else if(lhs.type == Value::Type::NUMBER && rhs.type == Value::Type::STRING){
-        const Number& r = lhs.as_number();
+    }else if(lhs_value.type == Value::Type::NUMBER && rhs_value.type == Value::Type::STRING){
+        const Number& r = lhs_value.as_number();
         std::string concated;
         if(r.type == Number::Type::DECIMAL){
             concated = std::to_string(r.as_double());
         }else{
             concated = std::to_string(r.as_int());
         }
-        concated += rhs.as_string();
+        concated += rhs_value.as_string();
         return concated;
     }else{
         std::cout << "Invalid operation + on unsupported types!" << std::endl; 
@@ -100,9 +104,11 @@ Value operator+(const Value& lhs, const Value& rhs){
 }
 
 Value operator-(const Value& lhs, const Value& rhs){
-    if(lhs.type == Value::Type::NUMBER && rhs.type == Value::Type::NUMBER){
-        const Number& lnum = lhs.as_number();
-        const Number& rnum = rhs.as_number();
+    const Value& lhs_value = lhs.isReference() ? *lhs.as_reference() : lhs;
+    const Value& rhs_value = rhs.isReference() ? *rhs.as_reference() : rhs;
+    if(lhs_value.type == Value::Type::NUMBER && rhs_value.type == Value::Type::NUMBER){
+        const Number& lnum = lhs_value.as_number();
+        const Number& rnum = rhs_value.as_number();
 
         bool isDouble = false;
 
@@ -121,9 +127,11 @@ Value operator-(const Value& lhs, const Value& rhs){
 }
 
 Value operator*(const Value& lhs, const Value& rhs){
-    if(lhs.type == Value::Type::NUMBER && rhs.type == Value::Type::NUMBER){
-        const Number& lnum = lhs.as_number();
-        const Number& rnum = rhs.as_number();
+    const Value& lhs_value = lhs.isReference() ? *lhs.as_reference() : lhs;
+    const Value& rhs_value = rhs.isReference() ? *rhs.as_reference() : rhs;
+    if(lhs_value.type == Value::Type::NUMBER && rhs_value.type == Value::Type::NUMBER){
+        const Number& lnum = lhs_value.as_number();
+        const Number& rnum = rhs_value.as_number();
 
         bool isDouble = false;
 
@@ -142,9 +150,11 @@ Value operator*(const Value& lhs, const Value& rhs){
 }
 
 Value operator/(const Value& lhs, const Value& rhs){
-    if(lhs.type == Value::Type::NUMBER && rhs.type == Value::Type::NUMBER){
-        const Number& lnum = lhs.as_number();
-        const Number& rnum = rhs.as_number();
+    const Value& lhs_value = lhs.isReference() ? *lhs.as_reference() : lhs;
+    const Value& rhs_value = rhs.isReference() ? *rhs.as_reference() : rhs;
+    if(lhs_value.type == Value::Type::NUMBER && rhs_value.type == Value::Type::NUMBER){
+        const Number& lnum = lhs_value.as_number();
+        const Number& rnum = rhs_value.as_number();
 
         bool isDouble = false;
 
@@ -163,9 +173,11 @@ Value operator/(const Value& lhs, const Value& rhs){
 }
 
 Value operator%(const Value& lhs, const Value& rhs){
-    if(lhs.type == Value::Type::NUMBER && rhs.type == Value::Type::NUMBER){
-        const Number& lnum = lhs.as_number();
-        const Number& rnum = rhs.as_number();
+    const Value& lhs_value = lhs.isReference() ? *lhs.as_reference() : lhs;
+    const Value& rhs_value = rhs.isReference() ? *rhs.as_reference() : rhs;
+    if(lhs_value.type == Value::Type::NUMBER && rhs_value.type == Value::Type::NUMBER){
+        const Number& lnum = lhs_value.as_number();
+        const Number& rnum = rhs_value.as_number();
 
         if(lnum.type == Number::Type::INTEGER && rnum.type == Number::Type::INTEGER){
             return Value(lnum.as_int() % rnum.as_int());
@@ -180,12 +192,14 @@ Value operator%(const Value& lhs, const Value& rhs){
 }
 
 bool operator==(const Value& lhs, const Value& rhs){
-    if(lhs.type != rhs.type) return false;
-    switch (lhs.type)
+    const Value& lhs_value = lhs.isReference() ? *lhs.as_reference() : lhs;
+    const Value& rhs_value = rhs.isReference() ? *rhs.as_reference() : rhs;
+    if(lhs_value.type != rhs_value.type) return false;
+    switch (lhs_value.type)
     {
         case Value::NUMBER: {
-            const Number& lnum = lhs.as_number();
-            const Number& rnum = rhs.as_number();
+            const Number& lnum = lhs_value.as_number();
+            const Number& rnum = rhs_value.as_number();
             if(lnum.type != rnum.type) return false;
             if(lnum.type == Number::Type::INTEGER)
             {
@@ -194,9 +208,10 @@ bool operator==(const Value& lhs, const Value& rhs){
                 return (lnum.as_double() == rnum.as_double());
             }
         }
-        case Value::BOOL: return lhs.as_bool() == rhs.as_bool();
-        case Value::STRING: return lhs.as_string() == rhs.as_string();
+        case Value::BOOL: return lhs_value.as_bool() == rhs_value.as_bool();
+        case Value::STRING: return lhs_value.as_string() == rhs_value.as_string();
         case Value::NILL: return true; 
+        default: break;
     }
     return false;
 }
@@ -205,12 +220,14 @@ bool operator!=(const Value& lhs, const Value& rhs){
     return !(lhs == rhs);
 }
 bool operator<(const Value& lhs, const Value& rhs){
-    if(lhs.type != rhs.type) throw std::runtime_error("Cannot compare different datatypes");
-    switch (lhs.type)
+    const Value& lhs_value = lhs.isReference() ? *lhs.as_reference() : lhs;
+    const Value& rhs_value = rhs.isReference() ? *rhs.as_reference() : rhs;
+    if(lhs_value.type != rhs_value.type) throw std::runtime_error("Cannot compare different datatypes");
+    switch (lhs_value.type)
     {
         case Value::NUMBER: {
-            const Number& lnum = lhs.as_number();
-            const Number& rnum = rhs.as_number();
+            const Number& lnum = lhs_value.as_number();
+            const Number& rnum = rhs_value.as_number();
             if(lnum.type != rnum.type) return false;
             if(lnum.type == Number::Type::INTEGER)
             {
@@ -219,7 +236,7 @@ bool operator<(const Value& lhs, const Value& rhs){
                 return (lnum.as_double() < rnum.as_double());
             }
         }
-        case Value::STRING: return lhs.as_string() < rhs.as_string();
+        case Value::STRING: return lhs_value.as_string() < rhs_value.as_string();
         default:{
             std::cout << "Invalid operation < on invalid types\n";
             exit(-1);

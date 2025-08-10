@@ -41,6 +41,12 @@ Stmt* Parser::parse_statement(){
                 return parse_func_def();
             else if(current_token.value == "return")
                 return parse_return_statement();
+            else if(current_token.value == "for")
+                return parse_for_statement();
+            else if(current_token.value == "while")
+                return parse_while_statement();
+            else if(current_token.value == "break" || current_token.value == "continue")
+                return parse_control_flow_statement(current_token.value);
             break;
         }
         case Token::Type::FUNCTION_CALL:{
@@ -62,9 +68,20 @@ Stmt* Parser::parse_var_def(){
     auto* node = new AST_var_def();
     parser_consume(Token::Type::KEYWORD);
     node->variable_name = current_token.value;
+    if(current_token.type == Token::Type::REFERENCE)
+    {
+        node->isReference = true;
+        parser_consume(Token::Type::REFERENCE);
+        parser_consume(Token::Type::EQUALS);
+        auto* id = new AST_identifier();
+        id->identifier_name = current_token.value;
+        parser_consume(Token::Type::IDENTIFIER);
+        node->variable_value = id;
+        parser_consume(Token::Type::SEMI);
+        return node;
+    }
     parser_consume(Token::Type::IDENTIFIER);
     parser_consume(Token::Type::EQUALS);
-
     node->variable_value = parse_expression();
     parser_consume(Token::Type::SEMI);
     return node;
@@ -73,7 +90,10 @@ Stmt* Parser::parse_var_assign(){
     auto* node = new AST_var_assign();
     node->variable_name = current_token.value;
     parser_consume(Token::Type::IDENTIFIER);
-    parser_consume(Token::Type::EQUALS);
+    if(current_token.type == Token::Type::EQUALS)
+    {
+        parser_consume(Token::Type::EQUALS);
+    }
     node->variable_value = parse_expression();
     parser_consume(Token::Type::SEMI);
     return node;
@@ -90,7 +110,14 @@ Stmt* Parser::parse_func_def(){
             parser_ignore();
         else{
             node->function_params.push_back(current_token.value);
-            parser_consume(Token::Type::IDENTIFIER);
+            if(current_token.type == Token::Type::REFERENCE)
+            {
+                node->isReferenced.push_back(true);
+                parser_consume(Token::Type::REFERENCE);
+            }else{
+                node->isReferenced.push_back(false);
+                parser_consume(Token::Type::IDENTIFIER);
+            }
         }
     }
     parser_consume(Token::Type::RPAREN);
@@ -128,18 +155,77 @@ Stmt* Parser::parse_return_statement(){
     parser_consume(Token::Type::SEMI);
     return node;
 }
-
+Stmt* Parser::parse_for_statement(){
+    auto* node = new AST_for_stmt();
+    parser_consume(Token::Type::KEYWORD);
+    parser_consume(Token::Type::LPAREN);
+    node->idName = current_token.value;
+    parser_consume(Token::Type::IDENTIFIER);
+    parser_consume(Token::Type::EQUALS);
+    node->start = parse_expression();
+    parser_consume(Token::Type::KEYWORD);
+    node->end = parse_expression();
+    parser_consume(Token::Type::RPAREN);
+    parser_consume(Token::Type::CURLYL);
+    while(current_token.type != Token::Type::CURLYR)
+    {
+        node->body.push_back(parse_statement());
+    }
+    parser_consume(Token::Type::CURLYR);
+    return node;
+}
+Stmt* Parser::parse_control_flow_statement(std::string& value){
+    if(value == "break"){
+        auto* node = new AST_break_statement;
+        parser_ignore();
+        parser_consume(Token::Type::SEMI);
+        return node;
+    }else{
+        auto* node = new AST_continue_statement;
+        parser_ignore();
+        parser_consume(Token::Type::SEMI);
+        return node;
+    }
+}
+Stmt* Parser::parse_while_statement(){
+    auto* node = new AST_while_stmt();
+    parser_consume(Token::Type::KEYWORD);
+    parser_consume(Token::Type::LPAREN);
+    node->condition = parse_condition();
+    parser_consume(Token::Type::RPAREN);
+    parser_consume(Token::Type::CURLYL);
+    while(current_token.type != Token::Type::CURLYR)
+    {
+        node->body.push_back(parse_statement());
+    }
+    parser_consume(Token::Type::CURLYR);
+    return node;
+}
 Stmt* Parser::parse_if_statement(){
     auto* node = new AST_if_statement();
     parser_consume(Token::Type::KEYWORD);
     parser_consume(Token::Type::LPAREN);
-    node->condition = parse_comparision();
+    node->condition = parse_condition();
     parser_consume(Token::Type::RPAREN);
     parser_consume(Token::Type::CURLYL);
     while(current_token.type != Token::Type::CURLYR){
         node->if_body.push_back(parse_statement());
     }
     parser_consume(Token::Type::CURLYR);
+    while(current_token.value == "elseif")
+    {
+        auto* elseif_node = new AST_if_statement();
+        parser_consume(Token::Type::KEYWORD);
+        parser_consume(Token::Type::LPAREN);
+        elseif_node->condition = parse_condition();
+        parser_consume(Token::Type::RPAREN);
+        parser_consume(Token::Type::CURLYL);
+        while (current_token.type != Token::Type::CURLYR) {
+            elseif_node->if_body.push_back(parse_statement());
+        }
+        parser_consume(Token::Type::CURLYR);
+        node->elseif_body.push_back(elseif_node);
+    }
     if(current_token.value == "else"){
         parser_consume(Token::Type::KEYWORD);
         parser_consume(Token::Type::CURLYL);
@@ -149,6 +235,23 @@ Stmt* Parser::parse_if_statement(){
         parser_consume(Token::Type::CURLYR);
     }
     return node;
+}
+Expr* Parser::parse_condition(){
+    Expr* left = parse_comparision();
+    while(current_token.type == Token::Type::AND || 
+        current_token.type == Token::Type::OR)
+        {
+            std::string op = current_token.value;
+            parser_ignore();
+            Expr* right = parse_comparision();
+
+            auto* temp = new AST_binary_expression();
+            temp->op = op;
+            temp->left = left;
+            temp->right = right;
+            left = temp;
+        }
+    return left;
 }
 Expr* Parser::parse_comparision(){
     if(current_token.type == Token::Type::SEMI)
@@ -210,7 +313,7 @@ Expr* Parser::parse_factor(){
         node->identifier_name = current_token.value;
         parser_ignore();
         return node;
-    } else if (current_token.type == Token::Type::LPAREN) {
+    }else if (current_token.type == Token::Type::LPAREN) {
         parser_consume(Token::Type::LPAREN);
         Expr* inner = parse_expression();
         parser_consume(Token::Type::RPAREN);
@@ -242,12 +345,24 @@ Expr* Parser::parse_term(){
 
 
 Expr* Parser::parse_expression(){
+    if(current_token.type == Token::Type::INCREMENT ||
+        current_token.type == Token::Type::DECREMENT){
+        auto* temp = new AST_binary_expression();
+
+        auto* left = new AST_identifier();
+        left->identifier_name = Env::m_tokens[i-1].value;
+        temp->op = current_token.value;
+
+        temp->left = left;
+        parser_ignore();
+        return temp;
+    }
     Expr* left = parse_term();
-    while (current_token.type == Token::Type::PLUS || current_token.type == Token::Type::MINUS) {
+    while (current_token.type == Token::Type::PLUS || 
+        current_token.type == Token::Type::MINUS) {
         std::string op = current_token.value;
         parser_ignore();
         Expr* right = parse_term();
-
         auto* temp = new AST_binary_expression();
         temp->op = op;
         temp->left = left;

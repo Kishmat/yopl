@@ -18,13 +18,17 @@ private:
     Stmt* parse_var_assign();
     Stmt* parse_func_def();
     Stmt* parse_if_statement();
+    Stmt* parse_for_statement();
+    Stmt* parse_while_statement();
     Stmt* parse_return_statement();
+    Stmt* parse_control_flow_statement(std::string& value);
 
     Expr* parse_func_call();
     Expr* parse_expression();
     Expr* parse_term();
     Expr* parse_factor();
     Expr* parse_comparision();
+    Expr* parse_condition();
 
     void parser_consume(Token::Type type);
     void parser_ignore();

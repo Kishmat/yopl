@@ -17,10 +17,13 @@ struct Expr{
 struct AST_var_def : public Stmt{
     std::string variable_name;
     Expr* variable_value = nullptr;
+    bool isReference = false;
 
     void print() override{
         std::string text = "[VARIABLE_DEFINATION] => {\n";
-        text += "\t[VARIABLE_NAME] => " + variable_name + "\n";
+        text += "\t[VARIABLE_NAME] => ";
+        if(isReference) text += "&";
+        text += variable_name + "\n";
         text += "\t[VARIABLE_VALUE] => " + variable_value->printString() + "\n";
         text += "\n}";
         std::cout << text << std::endl;
@@ -47,6 +50,7 @@ struct AST_func_def : public Stmt{
     std::string function_name;
     std::vector<std::string> function_params;
     std::vector<Stmt*> function_body;
+    std::vector<bool> isReferenced;
 
     void print() override {
         std::cout << "[FUNCTION_DEFINITION] {\n";
@@ -82,10 +86,25 @@ struct AST_return_statement : public Stmt{
 
     void execute() override;
 };
+struct AST_break_statement : public Stmt{
+    void print() override {
+        std::cout << "[BREAK_STATEMENT] \n";
+    }
+
+    void execute() override;
+};
+struct AST_continue_statement : public Stmt{
+    void print() override {
+        std::cout << "[CONTINUE_STATEMENT] \n";
+    }
+
+    void execute() override;
+};
 struct AST_if_statement : public Stmt{
     Expr* condition = nullptr;
     std::vector<Stmt*> if_body;
     std::vector<Stmt*> else_body;
+    std::vector<AST_if_statement*> elseif_body;
 
     void print() override {
         std::cout << "[IF_STATEMENT] {\n";
@@ -94,6 +113,14 @@ struct AST_if_statement : public Stmt{
         for (Stmt* stmt : if_body) {
             std::cout << "\t\t";
             stmt->print();
+        }
+        if(!elseif_body.empty())
+        {
+            std::cout << "\tElseIf Body:\n";
+            for(auto* if_stmt : elseif_body)
+            {
+                if_stmt->print();
+            }
         }
         if (!else_body.empty()) {
             std::cout << "\tElse Body:\n";
@@ -107,8 +134,43 @@ struct AST_if_statement : public Stmt{
     void execute() override;
 };
 
+struct AST_for_stmt : public Stmt{
+    std::string idName;
+    Expr* start = nullptr;
+    Expr* end = nullptr;
+    std::vector<Stmt*> body;
+
+    
+    void print() override {
+        std::cout << "[FOR_LOOP] {\n";
+        std::cout << "\tStart: " << (start ? start->printString() : "null") << "\n";
+        std::cout << "\tEnd: " << (end ? end->printString() : "null") << "\n";
+        std::cout << "\tBody:\n";
+        for (Stmt* stmt : body) {
+            std::cout << "\t\t";
+            stmt->print();
+        }
+        std::cout << "}" << std::endl;
+    }
+    void execute() override;
+};
+struct AST_while_stmt : public Stmt{
+    Expr* condition = nullptr;
+    std::vector<Stmt*> body;
+    void print() override {
+        std::cout << "[WHILE_LOOP] {\n";
+        std::cout << "\tCOndition: " << (condition ? condition->printString() : "null") << "\n";
+        std::cout << "\tBody:\n";
+        for (Stmt* stmt : body) {
+            std::cout << "\t\t";
+            stmt->print();
+        }
+        std::cout << "}" << std::endl;
+    }
+    void execute() override;
+};
 struct AST_expr_stmt : public Stmt{
-    Expr* expression;
+    Expr* expression = nullptr;
     AST_expr_stmt(Expr* expr) : expression(expr){}
 
     void print() override {
@@ -153,7 +215,7 @@ struct AST_identifier : public Expr{
     std::string identifier_name;
 
     std::string printString() override {
-        return "Identifier(" + identifier_name + ")";
+        return identifier_name;
     }
     Value getValue() override;
 };

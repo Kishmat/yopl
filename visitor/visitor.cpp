@@ -12,10 +12,22 @@ void Visitor::visit(){
 }
 
 void AST_var_def::execute(){
-    Env::defineVariable(variable_name,variable_value->getValue());
+    if(isReference)
+    {
+        Value* ref_value = Env::getVariablePtr(variable_value->printString());
+        Env::defineVariable(variable_name,ref_value);
+    }else{
+        Env::defineVariable(variable_name,variable_value->getValue());
+    }
 }
 void AST_var_assign::execute(){
-    Env::assignVariable(variable_name,variable_value->getValue());
+    Value v = Env::getVariable(variable_name);
+    if(v.type == Value::Type::REFERENCE)
+    {
+        *v.as_reference() = variable_value->getValue();
+    }else{
+        Env::assignVariable(variable_name,variable_value->getValue());
+    }
 }
 
 void AST_func_def::execute(){
@@ -28,6 +40,9 @@ void AST_func_def::execute(){
     for(auto& parm : function_params){
         func.parameters.push_back(parm);
     }
+    for(auto ref : isReferenced){
+        func.isReferrenced.push_back(ref);
+    }
     for(auto& stmt : function_body){
         func.body.push_back(stmt);
     }
@@ -35,6 +50,12 @@ void AST_func_def::execute(){
 }
 void AST_return_statement::execute(){
     throw ReturnException(return_value->getValue());
+}
+void AST_break_statement::execute(){
+    throw BreakException();
+}
+void AST_continue_statement::execute(){
+    throw ContinueException();
 }
 void AST_if_statement::execute(){
     Value val;
@@ -48,13 +69,85 @@ void AST_if_statement::execute(){
             }
         }
     }else{
-        if(!else_body.empty()){
+        bool elseif_handeled = false;
+        for(auto& elseif_node : elseif_body){
+            Value elseif_value;
+            if(elseif_node->condition)
+            {
+                elseif_value = elseif_node->condition->getValue();
+            }
+            if(elseif_value.as_condition())
+            {
+                if(!elseif_node->if_body.empty())
+                {
+                    for(auto& stmt : elseif_node->if_body)
+                    {
+                        stmt->execute();
+                    }
+                }
+                elseif_handeled = true;
+                break;
+            }
+        }
+        if(!elseif_handeled && !else_body.empty()){
             for(auto& stmt : else_body){
                 stmt->execute();
             }
         }
     }
 }
+void AST_for_stmt::execute(){
+    Value s = start->getValue();
+    Value e = end->getValue();
+    if(s.type == e.type && s.type == Value::Type::NUMBER){
+        Env::pushScope();
+        Env::defineVariable(idName,s);
+        int stat = (int)s.as_number().getValue();
+        int endd = (int)e.as_number().getValue();
+        
+            for(int i = stat; i <= endd; i++){
+                Env::assignVariable(idName,Value(i));
+                bool should_continue = false;
+                for(auto& stmt : body){
+                    try{
+                        stmt->execute();
+                    }catch(const BreakException&){
+                        return;
+                    }catch(const ContinueException&){
+                        should_continue = true;
+                        break;
+                    }
+                }
+                if(should_continue) continue;
+            }
+        Env::popScope();
+    }else{
+        std::cout << "For loop expects start and end to be a number" << std::endl;
+        exit(-1);
+    }
+}
+void AST_while_stmt::execute() {
+    Value con;
+    if (condition) {
+        con = condition->getValue();
+        
+        while (con.as_bool()) {
+            try {
+                for (auto& stmt : body) {
+                    stmt->execute();  // Execute the statement
+                }
+            } catch (const BreakException&) {
+                return;  // Break the while loop and exit the function
+            } catch (const ContinueException&) {
+                con = condition->getValue();  // Re-check the condition before continuing
+                continue;  // Skip to the next iteration of the while loop
+            }
+            
+            con = condition->getValue();
+        }
+    }
+}
+
 void AST_expr_stmt::execute(){
     expression->getValue();
 }
@@ -71,6 +164,8 @@ Value AST_func_call::getValue(){
                     function_print(function_args);
                 else if(function_name == "include")
                     function_include(function_args);
+                else if(function_name == "use")
+                    function_use(function_args);
                 else if(function_name == "exit")
                     exit(1);
                 else if(function_name == "typeof")
@@ -95,7 +190,6 @@ Value AST_func_call::getValue(){
 }
 Value AST_identifier::getValue(){
     return Env::getVariable(identifier_name);
-
 }
 Value AST_literal::getValue(){
     return literal_value;
@@ -128,11 +222,7 @@ Value AST_unary_expression::getValue() {
     exit(1);
 }
 
-
-void function_print(std::vector<Expr*>& arguments){
-    for(auto* arg : arguments)
-    {
-        Value val = arg->getValue();
+void __print(Value& val){
         switch (val.type)
         {
             case Value::Type::NUMBER:{
@@ -143,6 +233,10 @@ void function_print(std::vector<Expr*>& arguments){
                 }else{
                     std::cout << num.as_double();
                 }
+                break;
+            }
+            case Value::Type::REFERENCE:{
+                __print(*val.as_reference());
                 break;
             }
             case Value::Type::STRING:{
@@ -162,6 +256,13 @@ void function_print(std::vector<Expr*>& arguments){
                 break;
             }
         }
+}
+
+void function_print(std::vector<Expr*>& arguments){
+    for(auto* arg : arguments)
+    {
+        Value val = arg->getValue();
+        __print(val);
     }
     std::cout << "\n";
 }
@@ -178,20 +279,39 @@ void function_include(std::vector<Expr*>& arguments){
     std::string file = val.as_string();
     Env::includeFile(file);
 }
-std::string function_typeof(std::vector<Expr*>& arguments){
+void function_use(std::vector<Expr*>& arguments){
     if(arguments.size() != 1){
-        std::cout << "Include function expects only 1 argument" << std::endl;
+        std::cout << "Use function expects only 1 argument" << std::endl;
         exit(-1);
     }
-    Value::Type type = arguments[0]->getValue().type;
+    Value val = arguments[0]->getValue();
+    if(val.type != Value::Type::STRING){
+        std::cout << "Module name must be of string type" << std::endl;
+        exit(-1);
+    }
+    std::string file = val.as_string();
+    Env::includeModule(file);
+}
+
+std::string __type_of(Value& val){
+    Value::Type type = val.type;
     switch (type)
     {
         case Value::Type::NUMBER: return "Number";
         case Value::Type::STRING: return "String";
         case Value::Type::BOOL: return "Boolean";
+        case Value::Type::REFERENCE: return __type_of(*val.as_reference());
         default: return "NULL";
     }
     return "NULL";
+}
+std::string function_typeof(std::vector<Expr*>& arguments){
+    if(arguments.size() != 1){
+        std::cout << "Include function expects only 1 argument" << std::endl;
+        exit(-1);
+    }
+    Value val = arguments[0]->getValue();
+    return __type_of(val);
 }
 
 Value visit_user_function(AST_func_call* function){
@@ -202,7 +322,13 @@ Value visit_user_function(AST_func_call* function){
     }
     Env::pushScope();
     for(size_t i = 0; i < fn.parameters.size(); i++){
-        Env::defineVariable(fn.parameters[i],function->function_args[i]->getValue());
+        if(fn.isReferrenced[i])
+        {
+            Value* ref_value = Env::getVariablePtr(function->function_args[i]->printString());
+            Env::defineVariable(fn.parameters[i],ref_value);
+        }else{
+            Env::defineVariable(fn.parameters[i],function->function_args[i]->getValue());
+        }
     }
     for(auto& stmt : fn.body)
     {
@@ -211,17 +337,24 @@ Value visit_user_function(AST_func_call* function){
     Env::popScope();
     return Value();
 }
-Value visit_moduled_function(AST_func_call* function){
+NativeFunction* getFunction(const std::string& name) {
+    auto it = Env::modules.find(name);
+    if (it != Env::modules.end()) {
+        return &it->second;
+    }
+    return nullptr;
+}
+Value visit_moduled_function(AST_func_call* function) {
     std::vector<Value> args;
     for (auto& arg : function->function_args) {
         args.push_back(arg->getValue());
     }
-    for (const std::string& mod : Env::included_modules) {
-        auto& funcs = Env::modules[mod];
-        if (funcs.count(function->function_name)) {
-            auto nativeFunc = funcs[function->function_name];
-            return nativeFunc(args);
-        }
+
+    NativeFunction* func = getFunction(function->function_name);
+    if (!func) {
+        std::cerr << "Function '" << function->function_name << "' not found.\n";
+        return Value(); // or throw an error
     }
-    return Value();
+
+    return (*func)(args); // ✅ Correct way to call the function
 }
