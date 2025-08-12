@@ -81,22 +81,69 @@ Stmt* Parser::parse_var_def(){
         return node;
     }
     parser_consume(Token::Type::IDENTIFIER);
+    if(current_token.type == Token::Type::SEMI)
+    {
+        parser_consume(Token::Type::SEMI);
+        auto* exp = new AST_literal();
+        exp->literal_value = Value();
+        node->variable_value = exp;
+        return node;
+    }
     parser_consume(Token::Type::EQUALS);
     node->variable_value = parse_expression();
     parser_consume(Token::Type::SEMI);
     return node;
 }
 Stmt* Parser::parse_var_assign(){
-    auto* node = new AST_var_assign();
-    node->variable_name = current_token.value;
-    parser_consume(Token::Type::IDENTIFIER);
-    if(current_token.type == Token::Type::EQUALS)
+    Token::Type t = Env::m_tokens[i+1].type;
+    if(t == Token::Type::DOT)
     {
-        parser_consume(Token::Type::EQUALS);
+        auto* node = new AST_property_call();
+        node->object = current_token.value;
+        parser_consume(Token::Type::IDENTIFIER);
+        parser_consume(Token::Type::DOT);
+        if(current_token.type == Token::Type::IDENTIFIER)
+        {
+            node->isFunction = false;
+            node->propertyName = current_token.value;
+            parser_consume(Token::Type::IDENTIFIER);
+        }else if(current_token.type == Token::Type::FUNCTION_CALL)
+        {
+            node->isFunction = true;
+            node->propertyName = current_token.value;
+            parser_consume(Token::Type::FUNCTION_CALL);
+            parser_consume(Token::Type::LPAREN);
+            while(current_token.type != Token::Type::RPAREN)
+            {
+                if(current_token.type == Token::Type::COMMA)
+                parser_consume(Token::Type::COMMA);
+                else
+                node->args.push_back(parse_expression());
+            }
+            parser_consume(Token::Type::RPAREN);
+        }
+        parser_consume(Token::Type::SEMI);
+        
+        auto* parent = new AST_expr_stmt(node);
+        return parent;
+    }else{
+        auto* node = new AST_var_assign();
+        node->variable_name = current_token.value;
+        parser_consume(Token::Type::IDENTIFIER);
+        if(current_token.type == Token::Type::EQUALS)
+        {
+            parser_consume(Token::Type::EQUALS);
+        }else if(current_token.type == Token::Type::BRACEL)
+        {
+            parser_consume(Token::Type::BRACEL);
+            node->index = parse_expression();
+            parser_consume(Token::Type::BRACER);
+            parser_consume(Token::Type::EQUALS);
+        }
+        node->variable_value = parse_expression();
+        parser_consume(Token::Type::SEMI);
+        return node;
     }
-    node->variable_value = parse_expression();
-    parser_consume(Token::Type::SEMI);
-    return node;
 }
 Stmt* Parser::parse_func_def(){
     auto* node = new AST_func_def();
@@ -279,7 +326,6 @@ Expr* Parser::parse_comparision(){
         }
         return left;
 }
-
 Expr* Parser::parse_factor(){
     if(current_token.type == Token::Type::MINUS){
         parser_consume(Token::Type::MINUS);
@@ -288,7 +334,7 @@ Expr* Parser::parse_factor(){
         node->expr = parse_factor();
         return node;
     }
-    if (current_token.type == Token::Type::NUMBER || current_token.type == Token::Type::STRING || current_token.type == Token::Type::BOOLEAN) {
+    if (current_token.type == Token::Type::NUMBER || current_token.type == Token::Type::STRING || current_token.type == Token::Type::BOOLEAN || current_token.type == Token::Type::NILL) {
         auto* node = new AST_literal();
         if(current_token.type == Token::Type::NUMBER)
         {
@@ -300,25 +346,77 @@ Expr* Parser::parse_factor(){
             }
         }else if(current_token.type == Token::Type::STRING){
             node->literal_value = Value(current_token.value);
-        }else{
+        }else if(current_token.type == Token::Type::BOOLEAN){
             bool state = false;
             if(current_token.value == "true")
                 state = true;
             node->literal_value = Value(state);
+        }else{
+            node->literal_value = Value();
         }
         parser_ignore();
         return node;
     } else if (current_token.type == Token::Type::IDENTIFIER) {
-        auto* node = new AST_identifier();
-        node->identifier_name = current_token.value;
-        parser_ignore();
-        return node;
+        Token::Type t = Env::m_tokens[i+1].type;
+        if(t == Token::Type::DOT)
+        {
+            auto* node = new AST_property_call();
+            node->object = current_token.value;
+            parser_consume(Token::Type::IDENTIFIER);
+            parser_consume(Token::Type::DOT);
+            if(current_token.type == Token::Type::IDENTIFIER)
+            {
+                node->isFunction = false;
+                node->propertyName = current_token.value;
+                parser_consume(Token::Type::IDENTIFIER);
+            }else if(current_token.type == Token::Type::FUNCTION_CALL)
+            {
+                node->isFunction = true;
+                node->propertyName = current_token.value;
+                parser_consume(Token::Type::FUNCTION_CALL);
+                parser_consume(Token::Type::LPAREN);
+                while(current_token.type != Token::Type::RPAREN)
+                {
+                    if(current_token.type == Token::Type::COMMA)
+                    parser_consume(Token::Type::COMMA);
+                    else
+                    node->args.push_back(parse_expression());
+                }
+                parser_consume(Token::Type::RPAREN);
+            }
+            return node;
+        }else if(t == Token::Type::BRACEL){
+            auto* node = new AST_array_access();
+            node->array_name = current_token.value;
+            parser_consume(Token::Type::IDENTIFIER);
+            parser_consume(Token::Type::BRACEL);
+            node->index = parse_expression();
+            parser_consume(Token::Type::BRACER);
+            return node;
+        }else{
+            auto* node = new AST_identifier();
+            node->identifier_name = current_token.value;
+            parser_ignore();
+            return node;
+        }
     }else if (current_token.type == Token::Type::LPAREN) {
         parser_consume(Token::Type::LPAREN);
         Expr* inner = parse_expression();
         parser_consume(Token::Type::RPAREN);
         return inner;
-    } else if(current_token.type == Token::Type::FUNCTION_CALL){
+    }else if (current_token.type == Token::Type::BRACEL) {
+        auto* node = new AST_array();
+        parser_consume(Token::Type::BRACEL);
+        while(current_token.type != Token::Type::BRACER)
+        {
+            if(current_token.type == Token::Type::COMMA)
+                parser_consume(Token::Type::COMMA);
+            else
+                node->elements.push_back(parse_expression());
+        }
+        parser_consume(Token::Type::BRACER);
+        return node;
+    }else if(current_token.type == Token::Type::FUNCTION_CALL){
         auto* node = parse_func_call();
         return node;
     }else {

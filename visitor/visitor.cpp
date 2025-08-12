@@ -25,6 +25,16 @@ void AST_var_assign::execute(){
     if(v.type == Value::Type::REFERENCE)
     {
         *v.as_reference() = variable_value->getValue();
+    }else if(v.type == Value::Type::ARRAY){
+        Array* arr = v.as_array();
+        int i = index->getValue().as_number().as_int();
+        if(i < (int)arr->size)
+        {
+            arr->elements[i] = new Value(variable_value->getValue());
+        }else{
+            std::cout << "ERROR HERE" << std::endl;
+            exit(-1);
+        }
     }else{
         Env::assignVariable(variable_name,variable_value->getValue());
     }
@@ -194,6 +204,59 @@ Value AST_identifier::getValue(){
 Value AST_literal::getValue(){
     return literal_value;
 }
+Value AST_array::getValue(){
+    std::vector<Value*> ele;
+    for(auto& element : elements)
+    {
+        ele.push_back(new Value(element->getValue()));
+    }
+    return new Array(ele);
+}
+
+Value AST_property_call::getValue(){
+    Value val = Env::getVariable(object);
+    if(val.type == Value::Type::ARRAY)
+    {
+        Array* arr = val.as_array();
+        if(isFunction)
+        {
+            if(propertyName == "push")
+            {
+                if(args.size() != 1)
+                {
+                    std::cout << "Array.push() expects a 1 argument but given " << args.size() << std::endl;
+                    exit(-1);
+                }
+                arr->push(new Value(args[0]->getValue()));
+            }else if(propertyName == "pop")
+            {
+                arr->pop();
+            }else if(propertyName == "empty")
+            {
+                return Value(arr->empty());
+            }else{
+                std::cout << "No function " << propertyName << " exists for type Array" << std::endl;
+                exit(-1);
+            }
+        }else{
+            if(propertyName == "size")
+                return Value((int)arr->size);
+            else{
+                std::cout << "No property " << propertyName << " exists for type Array" << std::endl;
+                exit(-1);
+            }
+        }
+    }else{
+        std::cout << "Property " << propertyName << " not found for " << object << std::endl;
+        exit(-1);
+    }
+    return Value();
+}
+Value AST_array_access::getValue(){
+    Array* arr = Env::getVariable(array_name).as_array();
+    size_t i = index->getValue().as_number().as_int();
+    return *arr->at(i);
+}
 Value AST_binary_expression::getValue(){
     return Env::Evaluate(this);
 }
@@ -237,6 +300,17 @@ void __print(Value& val){
             }
             case Value::Type::REFERENCE:{
                 __print(*val.as_reference());
+                break;
+            }
+            case Value::Type::ARRAY:{
+                Array* ar = val.as_array();
+                std::cout << "Array(" << ar->size << ") => {";
+                for(size_t i=0;i<ar->size;i++){
+                    __print(*ar->elements[i]);
+                    if(i+1 != ar->size)
+                        std::cout << ", ";
+                }
+                std::cout << "}";
                 break;
             }
             case Value::Type::STRING:{
@@ -300,6 +374,7 @@ std::string __type_of(Value& val){
         case Value::Type::NUMBER: return "Number";
         case Value::Type::STRING: return "String";
         case Value::Type::BOOL: return "Boolean";
+        case Value::Type::ARRAY: return "Array";
         case Value::Type::REFERENCE: return __type_of(*val.as_reference());
         default: return "NULL";
     }

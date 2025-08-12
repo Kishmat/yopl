@@ -35,6 +35,54 @@ bool Value::as_condition() const{
     return false;
 }
 
+
+std::string Value::toString(){
+        std::string out = "";
+        switch (type)
+        {
+            case Type::NUMBER:{
+                Number num = as_number();
+                if(num.type == Number::Type::INTEGER)
+                {
+                    out = " (Int) " + std::to_string(num.as_int());
+                }else{
+                    out = " (Float) " + std::to_string(num.as_double());
+                }
+                break;
+            }
+            case Type::STRING:{
+                out = " (String) " + as_string();
+                break;
+            }
+            case Type::BOOL:{
+                out = " (Boolean) ";
+                bool state = as_bool();
+                if(state)
+                    out += "True";
+                else
+                    out += "False";
+                break;
+            }
+            case Type::ARRAY:{
+                const Array* arr = as_array();
+                if(arr){
+                    out = arr->toString();
+                }
+                break;
+            }
+            case Type::REFERENCE:
+            {
+                out = " (REFERENCE) -> " + (as_reference() ? as_reference()->toString() : "null");
+                break;
+            }
+            case Type::NILL:{
+                out = " (NULL) ";
+                break;
+            }
+        }
+        return out;
+    }
+
 Value function_input(){
     std::string input;
     std::getline(std::cin,input);

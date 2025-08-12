@@ -18,6 +18,7 @@ void Lexer::printTokens(){
             case Token::Type::NOT_EQUAL:{type = "NOT_EQUAL";break;}
             case Token::Type::NUMBER:{type = "NUMBER";break;}
             case Token::Type::STRING:{type = "STRING";break;}
+            case Token::Type::NILL:{type = "NULL";break;}
             case Token::Type::BOOLEAN:{type = "BOOLEAN";break;}
             case Token::Type::KEYWORD:{type = "KEYWORD";break;}
             case Token::Type::IDENTIFIER:{type = "IDENTIFIER";break;}
@@ -27,6 +28,8 @@ void Lexer::printTokens(){
             case Token::Type::MOD:{type = "MOD";break;}
             case Token::Type::EQUALS:{type = "EQUALS";break;}
             case Token::Type::SEMI:{type = "SEMI";break;}
+            case Token::Type::BRACEL:{type = "BRACEL";break;}
+            case Token::Type::BRACER:{type = "BRACER";break;}
             case Token::Type::PLUS:{type = "PLUS";break;}
             case Token::Type::MINUS:{type = "MINUS";break;}
             case Token::Type::MULTIPLY:{type = "MULTIPLY";break;}
@@ -36,6 +39,7 @@ void Lexer::printTokens(){
             case Token::Type::LPAREN:{type = "LPAREN";break;}
             case Token::Type::RPAREN:{type = "RPAREN";break;}
             case Token::Type::COMMA:{type = "COMMA";break;}
+            case Token::Type::DOT:{type = "DOT";break;}
             case Token::Type::CURLYL:{type = "CURLYL";break;}
             case Token::Type::CURLYR:{type = "CURLYR";break;}
         }
@@ -121,8 +125,11 @@ void Lexer::lex(){
             case '(': {Env::m_tokens.push_back({Token::Type::LPAREN, "("});break;}
             case ')': {Env::m_tokens.push_back({Token::Type::RPAREN, ")"});break;}
             case ',': {Env::m_tokens.push_back({Token::Type::COMMA, ","});break;}
+            case '.': {Env::m_tokens.push_back({Token::Type::DOT, "."});break;}
             case '{': {Env::m_tokens.push_back({Token::Type::CURLYL, "{"});break;}
             case '}': {Env::m_tokens.push_back({Token::Type::CURLYR, "}"});break;}
+            case '[': {Env::m_tokens.push_back({Token::Type::BRACEL, "["});break;}
+            case ']': {Env::m_tokens.push_back({Token::Type::BRACER, "]"});break;}
             case '|': {
                 if(next_ch() == '|'){
                     advance();
@@ -213,6 +220,9 @@ void Lexer::lex_identifier(std::string& value){
     }else if(value == "true" || value == "false")
     {
         Env::m_tokens.push_back({Token::Type::BOOLEAN,value});
+    }else if(value == "null")
+    {
+        Env::m_tokens.push_back({Token::Type::NILL,value});
     }else{
         if(ch == '(')
         {
@@ -269,12 +279,16 @@ std::string get_token_name(Token::Type type){
 
         case Token::Type::SEMI: return ";";
         case Token::Type::LPAREN: return "(";
+        case Token::Type::BRACEL: return "[";
+        case Token::Type::BRACER: return "]";
         case Token::Type::RPAREN: return ")";
         case Token::Type::COMMA: return ",";
+        case Token::Type::DOT: return ".";
         case Token::Type::CURLYL: return "{";
         case Token::Type::CURLYR: return "}";
         case Token::Type::NUMBER: return "number";
         case Token::Type::STRING: return "string";
+        case Token::Type::NILL: return "null";
         case Token::Type::BOOLEAN: return "boolean";
     }
     return "nothing";

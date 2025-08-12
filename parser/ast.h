@@ -34,12 +34,15 @@ struct AST_var_def : public Stmt{
 
 struct AST_var_assign : public Stmt{
     std::string variable_name;
+    Expr* index = nullptr;
     Expr* variable_value = nullptr;
 
     void print() override{
         std::string text = "[VARIABLE_ASSIGN] => {\n";
-        text += "\t[VARIABLE_NAME] => " + variable_name + "\n";
-        text += "\t[VARIABLE_VALUE] => " + variable_value->printString() + "\n";
+        text += "\t[VARIABLE_NAME] => " + variable_name;
+        if(index)
+            text += "(Array)[" + index->printString() + "]";
+        text += "\n\t[VARIABLE_VALUE] => " + variable_value->printString() + "\n";
         text += "\n}";
         std::cout << text << std::endl;
     }
@@ -227,6 +230,57 @@ struct AST_literal : public Expr{
         return "Literal(" + literal_value.toString() + ")";
     }
     Value getValue() override;
+};
+struct AST_array : public Expr{
+    std::vector<Expr*> elements;
+
+    std::string printString() override {
+        std::string out = "Array => {\n";
+        for(auto& ref : elements)
+        {
+            out+= ref->printString() + ", ";
+        }
+        out += "\n}";
+        return out;
+    }
+    Value getValue() override;
+};
+struct AST_array_access : public Expr{
+    std::string array_name;
+    Expr* index = nullptr;
+    Expr* value = nullptr;
+    std::string printString() override {
+        std::string out = "Array Access => "+array_name+"["+index->printString()+"]";
+        return out;
+    }
+    Value getValue() override;
+};
+
+struct AST_property_call : public Expr{
+    std::string object;
+    std::string propertyName;
+    bool isFunction;
+    std::vector<Expr*> args;
+
+
+    std::string printString() override {
+        std::string out = "Propert_Call => {\n";
+        out += "\t[Object] => " + object + "\n";
+        out += "\t[Property] => " + propertyName + "\n";
+        if(isFunction)
+        {
+            out += "\t[Arguments] => {\n";
+            for(auto& arg : args)
+            {
+                out+= arg->printString() + ", ";
+            }
+            out += "\t\n}";
+        }
+        out += "\n}";
+        return out;
+    }
+    Value getValue() override;
+
 };
 struct AST_binary_expression : public Expr{
     std::string op;

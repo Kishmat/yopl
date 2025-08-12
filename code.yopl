@@ -1,14 +1,17 @@
-let percent = 0;
-if(percent > 90){
-    print("A+");
-}elseif(percent)
-{
-    print("A");
-}else{
-    print("SOMETHING ELSE");
+function test(&r) {
+    r = 10;
+    print("INSIDE : ", r);
 }
+let array = 5;
+print("OUTSIDE : ", array);
+test(array);
+print("OUTSIDE : ", array);
 
-// array and objects as datatype too
 // refactor module system
 // include File as well
 // error system
+
+
+// FUTURE{
+    // object datatype
+// }

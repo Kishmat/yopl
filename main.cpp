@@ -23,8 +23,12 @@ int main(int argc,char* argv[]){
     Env::loadSource(filename);
     Lexer lexer;
     lexer.lex();
+    // lexer.printTokens();
+    // exit(-1);
     Parser parser;
     parser.parse();
+    // parser.printNodes();
+    // exit(-1);
     Visitor visitor;
     visitor.visit();
     return 0;
