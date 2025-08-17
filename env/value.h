@@ -36,7 +36,8 @@ struct Value
         BOOL,
         NILL,
         REFERENCE,
-        ARRAY
+        ARRAY,
+        ERR
     };
     Type type;
 

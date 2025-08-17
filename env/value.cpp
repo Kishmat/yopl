@@ -79,6 +79,7 @@ std::string Value::toString(){
                 out = " (NULL) ";
                 break;
             }
+            default: break;
         }
         return out;
     }

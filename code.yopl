@@ -1,17 +1,3 @@
-function test(&r) {
-    r = 10;
-    print("INSIDE : ", r);
-}
-let array = 5;
-print("OUTSIDE : ", array);
-test(array);
-print("OUTSIDE : ", array);
-
-// refactor module system
-// include File as well
-// error system
-
-
-// FUTURE{
-    // object datatype
-// }
+use("modules/string");
+let text = "Hello World";
+print(strlen(text));

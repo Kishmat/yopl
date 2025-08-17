@@ -1,10 +1,14 @@
-#include "environment.h"
 #include<sstream>
 #include<fstream>
 #include<algorithm>
 #include<windows.h>
+
+#include "environment.h"
+#include "../api/module.h"
+
 namespace Env{
     // interpreter
+    fs::path working_directory;
     std::string m_source;
     size_t source_length;
     std::vector<Token> m_tokens;
@@ -13,14 +17,16 @@ namespace Env{
         "let","function","return","if","else","for","while","to","elseif","break","continue"
     };
     const std::unordered_set<std::string_view> functions = {
-        "print","exit","typeof","input","include","use"
+        "print","exit","typeof","input","use"
     };
-    void loadSource(std::string& fileName){
+
+    std::unordered_set<fs::path> includedFiles;
+
+    std::string getSourceCode(fs::path& fileName){
         std::ifstream file(fileName);
         std::stringstream buffer;
         buffer << file.rdbuf();
-        m_source = buffer.str();
-        source_length = m_source.size();
+        return buffer.str();
     }
 
     // variables
@@ -77,20 +83,6 @@ namespace Env{
     FunctionMap functionTable;
     NativeFunctionMap modules;
 
-    void includeFile(std::string& name){
-        // if(modules.count(name))
-        // {
-            
-        //     if(std::find(included_modules.begin(),included_modules.end(),name) == included_modules.end())
-        //     {
-        //         included_modules.push_back(name);
-        //     }
-        // }else{
-        //     std::cout << "No any file or module named " << name << " found!" << std::endl;
-        //     exit(-1);
-        // }
-
-    }
     bool isFunctionUserDefined(std::string& name){
         if(functionTable.count(name))
             return true;
@@ -154,26 +146,32 @@ Value Env::Evaluate(AST_binary_expression* expression){
     }
 }
 
-void Env::registerFunction(const char* name, NativeFunction fn){
-    modules[name] = std::move(fn);
-}
+
+
 void Env::includeModule(std::string& name){
-    std::string filename = name + ".yopl.mod";
-    HMODULE handle = LoadLibraryA(filename.c_str());
+    name = name + ".yopl.mod";
+    fs::path fullPath = Env::working_directory / name;
+    HMODULE handle = LoadLibraryA(fullPath.string().c_str());
     if(!handle){
-        std::cerr << "Failed to load module: " << filename << "\n";
+        std::cerr << "Failed to load module: " << name << "\n";
         exit(1);
     }
-    typedef void(*RegisterFunctionPtr)(const char*, NativeFunction);
-    typedef void(*RegisterModuleFn)(RegisterFunctionPtr);
+
+    typedef void (*RegisterModuleFn)(YOPL_RegisterFn);
     RegisterModuleFn registerModule = (RegisterModuleFn)GetProcAddress(handle,"registerModule");
     if(!registerModule){
-        std::cerr << "Invalid module file " << filename << " because registerModule not found in it!" << std::endl;
+        std::cerr << "Invalid module file " << name << " because registerModule not found in it!" << std::endl;
         exit(1); 
     }
-    registerModule(registerFunction);
-}
-
-void Env::print(){
-    std::cout << "HELLO WORLD FROM HERE" << std::endl;
+    registerModule([](const char* fnName, YOPL_NativeFn fn){
+        NativeFunction wrapper = [fn](std::vector<Value> args) -> Value{
+            std::vector<YOPL_Value> cArgs;
+            cArgs.reserve(args.size());
+            for(auto& arg : args)
+                cArgs.push_back(convertToPublic(arg));
+            YOPL_Value ret = fn((int)cArgs.size(),cArgs.data());
+            return convertFromPublic(ret);
+        };
+        modules[fnName] = wrapper;
+    });
 }

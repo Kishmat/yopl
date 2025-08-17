@@ -172,8 +172,6 @@ Value AST_func_call::getValue(){
                     return function_input();
                 else if(function_name == "print")
                     function_print(function_args);
-                else if(function_name == "include")
-                    function_include(function_args);
                 else if(function_name == "use")
                     function_use(function_args);
                 else if(function_name == "exit")
@@ -325,8 +323,7 @@ void __print(Value& val){
                     std::cout << "false";
                 break;
             }
-            case Value::Type::NILL:{
-                std::cout << "NULL";
+            default:{
                 break;
             }
         }
@@ -339,19 +336,6 @@ void function_print(std::vector<Expr*>& arguments){
         __print(val);
     }
     std::cout << "\n";
-}
-void function_include(std::vector<Expr*>& arguments){
-    if(arguments.size() != 1){
-        std::cout << "Include function expects only 1 argument" << std::endl;
-        exit(-1);
-    }
-    Value val = arguments[0]->getValue();
-    if(val.type != Value::Type::STRING){
-        std::cout << "include name must be of string type" << std::endl;
-        exit(-1);
-    }
-    std::string file = val.as_string();
-    Env::includeFile(file);
 }
 void function_use(std::vector<Expr*>& arguments){
     if(arguments.size() != 1){
@@ -430,6 +414,10 @@ Value visit_moduled_function(AST_func_call* function) {
         std::cerr << "Function '" << function->function_name << "' not found.\n";
         return Value(); // or throw an error
     }
-
-    return (*func)(args); // ✅ Correct way to call the function
+    Value result = (*func)(args);
+    if(result.type == Value::Type::ERR){
+        std::cerr << "\n[Module Error] " << result.as_string() << std::endl;
+        return Value();
+    }
+    return result;
 }

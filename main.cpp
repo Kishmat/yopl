@@ -1,5 +1,6 @@
 #include<iostream>
 #include "env/environment.h"
+#include "preprocessor/preprocessor.h"
 #include "lexer/lexer.h"
 #include "parser/parser.h"
 #include "visitor/visitor.h"
@@ -20,11 +21,10 @@ int main(int argc,char* argv[]){
         std::cerr << "Usage: yopl.exe [filename.yopl]\n";
         return 1;
     }
-    Env::loadSource(filename);
+    Preprocessor preprocessor(filename);
+    preprocessor.scan();
     Lexer lexer;
     lexer.lex();
-    // lexer.printTokens();
-    // exit(-1);
     Parser parser;
     parser.parse();
     // parser.printNodes();

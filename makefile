@@ -6,7 +6,7 @@ CXXFLAGS = $(STD) $(WARNINGS)
 
 # Output and directories
 OUTPUT = yopl.exe
-SRC_DIRS = . env lexer parser visitor
+SRC_DIRS = . env lexer parser visitor api preprocessor
 BUILD_DIR = bin
 
 # Gather source files

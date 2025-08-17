@@ -1,19 +1,15 @@
-#include "../env/environment.h"
-#include<algorithm>
+#include "../api/module.h"
+#include <string.h>
+YOPL_DefineFunction(strlen){
+    if(argc != 1)
+        return YOPL_Error("Function strlen expects 1 argument");
+    if(argv[0].type != YOPL_TYPE_STRING)
+        return YOPL_Error("Function strlen expects arguemnt to be of type string");
+    YOPL_Value length;
+    length.setValue((int)strlen(argv[0].string));
+    return length;
+}
 
-extern "C" __declspec(dllexport) 
-void registerModule(RegisterFunctionPtr regFn){
-    regFn("strlen",[](std::vector<Value> args) -> Value{
-        if (args.empty() || args[0].type != Value::Type::STRING) return Value();
-        return Value((int)args[0].as_string().size());
-    });
-    regFn("strtoupper",[](std::vector<Value> args) -> Value{
-        if(args.size() != 1){
-            std::cout << "strtoupper function expects 1 argument but given " << args.size() << std::endl;
-            exit(-1);
-        }
-        std::string str = args[0].as_string();
-        std::transform(str.begin(),str.end(),str.begin(),::toupper);
-        return Value(str);
-    });
+void registerModule(YOPL_RegisterFn regFn){
+    regFn("strlen",strlen);
 }
