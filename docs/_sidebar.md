@@ -1,9 +1,10 @@
-- [Home](/)
-- [Getting Started](getting-started.md)
+- [Home](/docs/)
+- [Getting Started](/docs/getting-started.md)
 - [Reference](reference.md)
 - [Working with Modules](modules.md)
 - [Writing a Module](write_module.md)
     - [For Nerds](module_nerd.md)
     - [For Non-Nerds](module_still_nerd.md)
 - [Contributing](contributing.md)
+
 - [License](license.md)
